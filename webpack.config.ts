@@ -1,54 +1,40 @@
-const path = require("path");
-const HtmlWebpackPlugin = require("html-webpack-plugin");
-const htmlWebpackPlugin = new HtmlWebpackPlugin({
-  template: path.join(__dirname, "examples/src/index.html"),
-  filename: "./index.html",
-});
+const path = require('path')
 
 module.exports = {
-  entry: path.join(__dirname, "examples/src/index.tsx"),
+  entry: './src/PinchZoomPanImage.tsx',
+  mode: 'production',
   output: {
-    path: path.join(__dirname, "examples/dist"),
-    filename: "bundle.js",
+    filename: 'index.js',
+    path: path.resolve(__dirname, 'dist'),
+    library: '@secretwpn/react-image-zoom',
+    libraryTarget: 'umd',
+    umdNamedDefine: true,
+    globalObject: 'this',
+  },
+  resolve: {
+    extensions: ['.ts', '.tsx', '.js'],
   },
   module: {
     rules: [
       {
-        test: /\.(js|jsx)$/,
-        use: "babel-loader",
-        exclude: /node_modules/,
-      },
-      {
-        test: /\.css$/,
-        use: ["style-loader", "css-loader"],
-      },
-      {
         test: /\.(ts|tsx)$/,
+        use: 'ts-loader',
         exclude: /node_modules/,
-        use: [
-          {
-            loader: 'babel-loader',
-            options: {
-              presets: ['@babel/preset-env', '@babel/preset-react'],
-            },
-          },
-          'ts-loader',
-        ],
       },
     ],
   },
-  plugins: [htmlWebpackPlugin],
-  resolve: {
-    alias: {
-
+  externals: {
+    react: {
+      commonjs: 'react',
+      commonjs2: 'react',
+      amd: 'React',
+      root: 'React',
     },
-    extensions: [".js", ".jsx", ".ts", ".tsx"],
-  },
-  devServer: {
-    static: {
-      directory: path.join(__dirname, "examples/dist"),
+    'react-dom': {
+      commonjs: 'react-dom',
+      commonjs2: 'react-dom',
+      amd: 'ReactDOM',
+      root: 'ReactDOM',
     },
-    port: 3001,
   },
-  devtool: "source-map",
-};
+}

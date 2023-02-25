@@ -1,15 +1,8 @@
-import React, {
-  CSSProperties,
-  useEffect,
-  useRef,
-  useState,
-} from 'react'
+import { CSSProperties, useEffect, useRef, useState } from 'react'
 
 import {
   negate,
   constrain,
-  getPinchLength,
-  getPinchMidpoint,
   getRelativePosition,
   getDimensions,
   getContainerDimensions,
@@ -18,24 +11,51 @@ import {
   tryCancelEvent,
   getImageOverflow,
 } from './Utils'
-import { Transform } from "./types/Transform"
-import { ClientPosition } from "./types/ClientPosition"
+import { Transform } from './types/Transform'
+import { ClientPosition } from './types/ClientPosition'
 import { Position } from './types/Position'
 
 const OVERZOOM_TOLERANCE = 0.05
 const DOUBLE_TAP_THRESHOLD = 250
 
 interface PinchZoomPanImageProps {
+  /**
+   * The initial scale of the image. When `auto`, the image will be proportionally 'autofit' to the container
+   */
   initialScale?: number | 'auto'
+  /**
+   * The minimum scale to which the image can be zoomed out. When `auto`, the minimum scale is the 'autofit' scale
+   */
   minScale?: number | 'auto'
+  /**
+   * The maximum scale to which the image can be zoomed in
+   */
   maxScale?: number
+  /**
+   * Position of the image relative to the container. Applies when the scaled image is smaller than the container
+   */
   position?: 'topLeft' | 'center'
+  /**
+   * Whether to enable subtle animation
+   */
   animate?: boolean
+  /**
+   * Whether to zoom in or reset to initial scale on double-click / double-tap.
+   */
   doubleTapBehavior?: 'reset' | 'zoom'
   initialTop?: number
   initialLeft?: number
+  /**
+   * Style to apply to the image, e.g. `{ opacity: 0.5 }`
+   */
   style?: CSSProperties
+  /**
+   * Same as `src` in regular `<img />` tag
+   */
   src: string
+  /**
+   * Same as `alt` in regular `<img />` tag
+   */
   alt?: string
 }
 
@@ -51,7 +71,7 @@ export function PinchZoomPanImage(props: PinchZoomPanImageProps): JSX.Element {
     style = {},
     src,
     animate,
-    alt=''
+    alt = '',
   } = props
 
   // enables detecting double-tap
@@ -62,8 +82,6 @@ export function PinchZoomPanImage(props: PinchZoomPanImageProps): JSX.Element {
   const [lastPanPointerPosition, setLastPanPointerPosition] = useState<
     Position | undefined
   >()
-  // helps determine if we are pinching in or out
-  const [lastPinchLength, setLastPinchLength] = useState<number | undefined>()
   // image element
   const containerRef = useRef<HTMLDivElement>(null)
   const imageRef = useRef<HTMLImageElement>(null)
@@ -75,7 +93,6 @@ export function PinchZoomPanImage(props: PinchZoomPanImageProps): JSX.Element {
   const [top, setTop] = useState<number | undefined>()
   const [left, setLeft] = useState<number | undefined>()
   const [scale, setScale] = useState<number | undefined>()
-
 
   useEffect(() => {
     if (!isImageLoaded) return
@@ -99,15 +116,13 @@ export function PinchZoomPanImage(props: PinchZoomPanImageProps): JSX.Element {
     ? getImageOverflow(top, left, scale, imageDimensions, containerDimensions)
     : undefined
 
-  console.log(isImageReady)
-
   const imageStyle: CSSProperties = isInitialized
     ? {
-      ...(style),
-      transition: animate ? 'all 0.15s ease-out' : undefined,
-      transform: `translate3d(${left}px, ${top}px, 0) scale(${scale})`,
-      transformOrigin: '0 0',
-    }
+        ...style,
+        transition: animate ? 'all 0.15s ease-out' : undefined,
+        transform: `translate3d(${left}px, ${top}px, 0) scale(${scale})`,
+        transformOrigin: '0 0',
+      }
     : style
 
   // Determine the panning directions where there is no image overflow and let
@@ -118,78 +133,31 @@ export function PinchZoomPanImage(props: PinchZoomPanImageProps): JSX.Element {
     ? !imageOverflow.left && !imageOverflow.right
       ? 'pan-x' // we can't pan the image horizontally, let the browser take it
       : !imageOverflow.left
-        ? 'pan-left'
-        : !imageOverflow.right
-          ? 'pan-right'
-          : ''
+      ? 'pan-left'
+      : !imageOverflow.right
+      ? 'pan-right'
+      : ''
     : ''
   const browserPanY = imageOverflow
     ? !imageOverflow.top && !imageOverflow.bottom
       ? 'pan-y'
       : !imageOverflow.top
-        ? 'pan-up'
-        : !imageOverflow.bottom
-          ? 'pan-down'
-          : ''
+      ? 'pan-up'
+      : !imageOverflow.bottom
+      ? 'pan-down'
+      : ''
     : ''
 
   // event handlers
   const handleTouchStart = (event: React.TouchEvent) => {
     const touches = event.touches
     if (touches.length === 2) {
-      setLastPinchLength(getPinchLength(touches))
       setLastPanPointerPosition(undefined)
     } else if (touches.length === 1) {
-      setLastPinchLength(undefined)
       pointerDown(touches[0])
       tryCancelEvent(event) // suppress mouse events
     }
   }
-
-  // const handleTouchMove = (event: React.TouchEvent) => {
-  //   const touches = event.touches
-  //   if (touches.length === 2) {
-  //     pinchChange(touches)
-
-  //     // suppress viewport scaling on iOS
-  //     tryCancelEvent(event)
-  //   } else if (touches.length === 1) {
-  //     const requestedPan = pan(touches[0])
-
-  //     if (requestedPan && !controlOverscrollViaCss) {
-  //       // let the browser handling panning if we are at the edge of the image in
-  //       // both pan directions, or if we are primarily panning in one direction
-  //       // and are at the edge in that directino
-  //       const overflow = imageOverflow
-  //       if (!overflow) return
-  //       const hasOverflowX =
-  //         (requestedPan.left && overflow.left > 0) ||
-  //         (requestedPan.right && overflow.right > 0)
-  //       const hasOverflowY =
-  //         (requestedPan.up && overflow.top > 0) ||
-  //         (requestedPan.down && overflow.bottom > 0)
-
-  //       if (!hasOverflowX && !hasOverflowY) {
-  //         // no overflow in both directions
-  //         return
-  //       }
-
-  //       const panX = requestedPan.left || requestedPan.right
-  //       const panY = requestedPan.up || requestedPan.down
-  //       if (panY > 2 * panX && !hasOverflowY) {
-  //         // primarily panning up or down and no overflow in the Y direction
-  //         return
-  //       }
-
-  //       if (panX > 2 * panY && !hasOverflowX) {
-  //         // primarily panning left or right and no overflow in the X direction
-  //         return
-  //       }
-
-  //       tryCancelEvent(event)
-  //     }
-  //   }
-  // }
 
   const handleTouchEnd = (event: React.TouchEvent) => {
     if (event.touches.length === 0 && event.changedTouches.length === 1) {
@@ -213,10 +181,8 @@ export function PinchZoomPanImage(props: PinchZoomPanImageProps): JSX.Element {
   }
 
   const handleMouseDown = (event: React.MouseEvent) => {
-    if (event.button === 0)
-      pointerDown(event)
-    else if (event.button === 1)
-      applyInitialTransform()
+    if (event.button === 0) pointerDown(event)
+    else if (event.button === 1) applyInitialTransform()
   }
 
   const handleMouseMove = (event: React.MouseEvent) => {
@@ -312,19 +278,6 @@ export function PinchZoomPanImage(props: PinchZoomPanImageProps): JSX.Element {
     }
   }
 
-  const pinchChange = (touches: React.TouchList) => {
-    if (!isInitialized) return
-    const length = getPinchLength(touches)
-    const midpoint = getPinchMidpoint(touches)
-    const newScale = lastPinchLength
-      ? (scale * length) / lastPinchLength // sometimes we get a touchchange before a touchstart when pinching
-      : scale
-
-    zoom(newScale, midpoint, OVERZOOM_TOLERANCE)
-
-    setLastPinchLength(length)
-  }
-
   const zoomIn = (midpoint?: Position, factor = 0.1) => {
     if (!isInitialized) return
     midpoint = midpoint ?? {
@@ -384,7 +337,6 @@ export function PinchZoomPanImage(props: PinchZoomPanImageProps): JSX.Element {
     requestedScale: number,
     tolerance: number
   ) => {
-
     const requestedTransform = {
       top: requestedTop,
       left: requestedLeft,
@@ -446,23 +398,23 @@ export function PinchZoomPanImage(props: PinchZoomPanImageProps): JSX.Element {
     const upperBoundFactor = 1.0 + tolerance
     const top = overflow.height
       ? constrain(
-        negate(overflow.height) * upperBoundFactor,
-        overflow.height * upperBoundFactor - overflow.height,
-        requestedTransform.top
-      )
+          negate(overflow.height) * upperBoundFactor,
+          overflow.height * upperBoundFactor - overflow.height,
+          requestedTransform.top
+        )
       : position === 'center'
-        ? (containerDimensions.height - imageDimensions.height * scale) / 2
-        : (initialTop ?? 0)
+      ? (containerDimensions.height - imageDimensions.height * scale) / 2
+      : initialTop ?? 0
 
     const left = overflow.width
       ? constrain(
-        negate(overflow.width) * upperBoundFactor,
-        overflow.width * upperBoundFactor - overflow.width,
-        requestedTransform.left
-      )
+          negate(overflow.width) * upperBoundFactor,
+          overflow.width * upperBoundFactor - overflow.width,
+          requestedTransform.left
+        )
       : position === 'center'
-        ? (containerDimensions.width - imageDimensions.width * scale) / 2
-        : (initialLeft ?? 0)
+      ? (containerDimensions.width - imageDimensions.width * scale) / 2
+      : initialLeft ?? 0
 
     const constrainedTransform = {
       top,
@@ -558,7 +510,6 @@ export function PinchZoomPanImage(props: PinchZoomPanImageProps): JSX.Element {
     }
   }, [])
 
-
   const calculateNegativeSpace = (scale: number) => {
     if (!isInitialized) return
     // get difference in dimension between container and scaled image
@@ -569,7 +520,6 @@ export function PinchZoomPanImage(props: PinchZoomPanImageProps): JSX.Element {
       height,
     }
   }
-
 
   return (
     <div style={containerStyle} ref={containerRef}>
