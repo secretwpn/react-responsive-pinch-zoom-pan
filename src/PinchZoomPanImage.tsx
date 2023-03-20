@@ -1,4 +1,4 @@
-import { CSSProperties, useEffect, useRef, useState } from 'react'
+import { CSSProperties, RefObject, useEffect, useRef, useState } from 'react'
 
 import {
   negate,
@@ -14,11 +14,13 @@ import {
 import { Transform } from './types/Transform'
 import { ClientPosition } from './types/ClientPosition'
 import { Position } from './types/Position'
+import { Dimensions } from './types/Dimensions'
 
 const OVERZOOM_TOLERANCE = 0.05
 const DOUBLE_TAP_THRESHOLD = 250
 
 interface PinchZoomPanImageProps {
+  ref?: RefObject<HTMLImageElement>
   /**
    * The initial scale of the image. When `auto`, the image will be proportionally 'autofit' to the container
    */
@@ -48,7 +50,11 @@ interface PinchZoomPanImageProps {
   /**
    * Style to apply to the image, e.g. `{ opacity: 0.5 }`
    */
-  style?: CSSProperties
+  imgStyle?: CSSProperties
+  /**
+   * Style to apply to the image container div, e.g. `{ width: '100% }`
+   */
+  containerStyle?: CSSProperties
   /**
    * Same as `src` in regular `<img />` tag
    */
@@ -57,6 +63,21 @@ interface PinchZoomPanImageProps {
    * Same as `alt` in regular `<img />` tag
    */
   alt?: string
+  /**
+   * Called after applying image transformation
+   *
+   * @param transform current image transform
+   * @param img image element
+   */
+  onTransformed?: (transform: Transform, img: HTMLImageElement | null | undefined) => void
+  /**
+   * Called when image dimensions are changed
+   *
+   * @param dimensions image dimensions
+   */
+  onImageDimensionsChanged?: (dimensions: Dimensions) => void
+  onDoubleClick?: () => void
+  onImageLoaded?: () => void
 }
 
 export function PinchZoomPanImage(props: PinchZoomPanImageProps): JSX.Element {
@@ -68,10 +89,15 @@ export function PinchZoomPanImage(props: PinchZoomPanImageProps): JSX.Element {
     maxScale = 1,
     minScale = 'auto',
     position = 'center',
-    style = {},
+    imgStyle: inheritedImgStyle = {},
+    containerStyle: inheritedContainerStyle = {},
     src,
     animate,
     alt = '',
+    onTransformed = () => { },
+    onImageDimensionsChanged = () => { },
+    onDoubleClick = () => { },
+    onImageLoaded = () => { },
   } = props
 
   // enables detecting double-tap
@@ -100,6 +126,14 @@ export function PinchZoomPanImage(props: PinchZoomPanImageProps): JSX.Element {
   }, [isImageLoaded])
 
   const imageDimensions = getDimensions(imageElement)
+
+  useEffect(() => {
+    onImageDimensionsChanged({
+      width: imageDimensions?.width ?? 0,
+      height: imageDimensions?.height ?? 0
+    })
+  }, [imageDimensions?.width, imageDimensions?.height])
+
   const containerDimensions = getContainerDimensions(containerElement)
 
   const isInitialized =
@@ -109,8 +143,7 @@ export function PinchZoomPanImage(props: PinchZoomPanImageProps): JSX.Element {
     imageDimensions !== undefined &&
     containerDimensions !== undefined
 
-  const isImageReady =
-    isImageLoaded ?? Boolean(imageElement && imageElement.tagName !== 'IMG')
+  const isImageReady = isImageLoaded ?? Boolean(imageElement)
 
   const imageOverflow = isInitialized
     ? getImageOverflow(top, left, scale, imageDimensions, containerDimensions)
@@ -118,12 +151,12 @@ export function PinchZoomPanImage(props: PinchZoomPanImageProps): JSX.Element {
 
   const imageStyle: CSSProperties = isInitialized
     ? {
-        ...style,
-        transition: animate ? 'all 0.15s ease-out' : undefined,
-        transform: `translate3d(${left}px, ${top}px, 0) scale(${scale})`,
-        transformOrigin: '0 0',
-      }
-    : style
+      ...inheritedImgStyle,
+      transition: animate ? 'all 0.15s ease-out' : undefined,
+      transform: `translate3d(${left}px, ${top}px, 0) scale(${scale})`,
+      transformOrigin: '0 0',
+    }
+    : inheritedImgStyle
 
   // Determine the panning directions where there is no image overflow and let
   // the browser handle those directions (e.g., scroll viewport if possible).
@@ -133,19 +166,19 @@ export function PinchZoomPanImage(props: PinchZoomPanImageProps): JSX.Element {
     ? !imageOverflow.left && !imageOverflow.right
       ? 'pan-x' // we can't pan the image horizontally, let the browser take it
       : !imageOverflow.left
-      ? 'pan-left'
-      : !imageOverflow.right
-      ? 'pan-right'
-      : ''
+        ? 'pan-left'
+        : !imageOverflow.right
+          ? 'pan-right'
+          : ''
     : ''
   const browserPanY = imageOverflow
     ? !imageOverflow.top && !imageOverflow.bottom
       ? 'pan-y'
       : !imageOverflow.top
-      ? 'pan-up'
-      : !imageOverflow.bottom
-      ? 'pan-down'
-      : ''
+        ? 'pan-up'
+        : !imageOverflow.bottom
+          ? 'pan-down'
+          : ''
     : ''
 
   // event handlers
@@ -155,7 +188,7 @@ export function PinchZoomPanImage(props: PinchZoomPanImageProps): JSX.Element {
       setLastPanPointerPosition(undefined)
     } else if (touches.length === 1) {
       pointerDown(touches[0])
-      tryCancelEvent(event) // suppress mouse events
+      tryCancelEvent(event, true) // suppress mouse events
     }
   }
 
@@ -172,7 +205,7 @@ export function PinchZoomPanImage(props: PinchZoomPanImageProps): JSX.Element {
         doubleClick(pointerPosition)
       }
       setLastPointerUpTimeStamp(event.timeStamp)
-      tryCancelEvent(event) // suppress mouse events
+      tryCancelEvent(event, true) // suppress mouse events
     }
 
     // We allow transient +/-5% over-pinching.
@@ -193,6 +226,7 @@ export function PinchZoomPanImage(props: PinchZoomPanImageProps): JSX.Element {
   const handleMouseDoubleClick = (event: React.MouseEvent) => {
     var pointerPosition = getRelativePosition(event, containerElement)
     doubleClick(pointerPosition)
+    onDoubleClick()
   }
 
   const sanitizedMinScale =
@@ -207,12 +241,12 @@ export function PinchZoomPanImage(props: PinchZoomPanImageProps): JSX.Element {
     if (event.deltaY > 0) {
       if (scale > sanitizedMinScale) {
         zoomOut(point)
-        tryCancelEvent(event)
+        tryCancelEvent(event, true)
       }
     } else if (event.deltaY < 0) {
       if (scale < maxScale) {
         zoomIn(point)
-        tryCancelEvent(event)
+        tryCancelEvent(event, true)
       }
     }
   }
@@ -220,6 +254,7 @@ export function PinchZoomPanImage(props: PinchZoomPanImageProps): JSX.Element {
   const handleImageLoad = (event: any) => {
     setImageLoaded(true)
     maybeHandleDimensionsChanged()
+    onImageLoaded()
   }
 
   const handleWindowResize = () => maybeHandleDimensionsChanged()
@@ -361,6 +396,7 @@ export function PinchZoomPanImage(props: PinchZoomPanImageProps): JSX.Element {
     setTop(tTop)
     setLeft(tLeft)
     setScale(tScale)
+    onTransformed(transform, imageElement)
   }
 
   // Returns constrained scale when requested scale is outside min/max with tolerance, otherwise returns requested scale
@@ -398,23 +434,23 @@ export function PinchZoomPanImage(props: PinchZoomPanImageProps): JSX.Element {
     const upperBoundFactor = 1.0 + tolerance
     const top = overflow.height
       ? constrain(
-          negate(overflow.height) * upperBoundFactor,
-          overflow.height * upperBoundFactor - overflow.height,
-          requestedTransform.top
-        )
+        negate(overflow.height) * upperBoundFactor,
+        overflow.height * upperBoundFactor - overflow.height,
+        requestedTransform.top
+      )
       : position === 'center'
-      ? (containerDimensions.height - imageDimensions.height * scale) / 2
-      : initialTop ?? 0
+        ? (containerDimensions.height - imageDimensions.height * scale) / 2
+        : initialTop ?? 0
 
     const left = overflow.width
       ? constrain(
-          negate(overflow.width) * upperBoundFactor,
-          overflow.width * upperBoundFactor - overflow.width,
-          requestedTransform.left
-        )
+        negate(overflow.width) * upperBoundFactor,
+        overflow.width * upperBoundFactor - overflow.width,
+        requestedTransform.left
+      )
       : position === 'center'
-      ? (containerDimensions.width - imageDimensions.width * scale) / 2
-      : initialLeft ?? 0
+        ? (containerDimensions.width - imageDimensions.width * scale) / 2
+        : initialLeft ?? 0
 
     const constrainedTransform = {
       top,
@@ -494,7 +530,7 @@ export function PinchZoomPanImage(props: PinchZoomPanImageProps): JSX.Element {
   const touchAction = controlOverscrollViaCss ? browserPanActions : undefined
 
   const containerStyle = {
-    ...props.style,
+    ...inheritedContainerStyle,
     width: '100%',
     height: '100%',
     overflow: 'hidden',

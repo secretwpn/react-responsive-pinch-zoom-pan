@@ -6,7 +6,11 @@ It provides a React component rendering an `img` element with zoom and pan capab
 
 ## Install
 
+#### npm
 `npm install @secretwpn/react-image-zoom --save`
+
+#### yarn
+`yarn add @secretwpn/react-image-zoom`
 
 ### Local
 
@@ -35,17 +39,22 @@ const App = () => {
 
 ## API
 
-| Prop              | Type                  | Default   | Description                                                                                                    |
-| ----------------- | --------------------- | --------- | -------------------------------------------------------------------------------------------------------------- |
-| initialScale      | `number` or `auto`    | `auto`    | The initial scale of the image. When `auto`, the image will be proportionally 'autofit' to the container.      |
-| minScale          | `number`              | `auto`    | The minimum scale to which the image can be zoomed out. When `auto`, the minimum scale is the 'autofit' scale. |
-| maxScale          | `number`              | `1`       | The maximum scale to which the image can be zoomed in.                                                         |
-| position          | `center` or `topLeft` | `topLeft` | Position of the image relative to the container. Applies when the scaled image is smaller than the container.  |
-| doubleTapBehavior | `reset` or `zoom`     | `reset`   | Whether to zoom in or reset to initial scale on double-click / double-tap.                                     |
-| style             | `CSSProperties`       | `{}`      | Style to apply to the image, e.g. `{ opacity: 0.5 }`                                                           |
-| animate           | boolean               | `false`   | Whether to enable subtle animation                                                                             |
-| alt | `string` | `""` | Same as `alt` in regular `<img />` tag |
-| src | `string` |  | Same as `src` in regular `<img />` tag |
+| Prop                     | Type                                         | Default     | Description                                                                                                    |
+| ------------------------ | -------------------------------------------- | ----------- | -------------------------------------------------------------------------------------------------------------- |
+| initialScale             | `number` or `auto`                           | `auto`      | The initial scale of the image. When `auto`, the image will be proportionally 'autofit' to the container.      |
+| minScale                 | `number`                                     | `auto`      | The minimum scale to which the image can be zoomed out. When `auto`, the minimum scale is the 'autofit' scale. |
+| maxScale                 | `number`                                     | `1`         | The maximum scale to which the image can be zoomed in.                                                         |
+| position                 | `center` or `topLeft`                        | `topLeft`   | Position of the image relative to the container. Applies when the scaled image is smaller than the container.  |
+| doubleTapBehavior        | `reset` or `zoom`                            | `reset`     | Whether to zoom in or reset to initial scale on double-click / double-tap.                                     |
+| imageStyle               | `CSSProperties`                              | `{}`        | Style to apply to the image, e.g. `{ opacity: 0.5 }`                                                           |
+| containerStyle           | `CSSProperties`                              | `{}`        | Style to apply to the image container div, e.g. `{ width: '100% }`                                             |
+| animate                  | `boolean`                                    | `false`     | Whether to enable subtle animation                                                                             |
+| alt                      | `string`                                     | `undefined` | Same as `alt` in regular `<img />` tag                                                                         |
+| src                      | `string`                                     | `undefined` | Same as `src` in regular `<img />` tag                                                                         |
+| onTransformed            | `({top, left, scale}, imageElement) => void` | `undefined` | Called after applying image transformation                                                                     |
+| onImageDimensionsChanged | `({width, height}) => void`                  | `undefined` | Called when image dimensions are changed                                                                       |
+| onDoubleClick            | `() => void`                                 | `undefined` | Called on double click                                                                                         |
+| onImageLoaded            | `() => void`                                 | `undefined` | Called when image is loaded                                                                                    |
 
 ## Development
 

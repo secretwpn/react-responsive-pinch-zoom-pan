@@ -32,7 +32,7 @@ export const getPinchMidpoint = (touches: React.TouchList) => ({
 export const getPinchLength = (touches: React.TouchList) =>
   Math.sqrt(
     Math.pow(touches.item(0).clientY - touches.item(1).clientY, 2) +
-      Math.pow(touches.item(0).clientX - touches.item(1).clientX, 2)
+    Math.pow(touches.item(0).clientX - touches.item(1).clientX, 2)
   )
 
 export const getDimensions = (
@@ -41,8 +41,8 @@ export const getDimensions = (
   if (!object) return undefined
 
   return {
-    width: object.offsetWidth || object.width,
-    height: object.offsetHeight || object.height,
+    width: object.clientWidth ?? object.offsetWidth ?? object.width,
+    height: object.clientHeight ?? object.offsetHeight ?? object.height,
   }
 }
 
@@ -101,12 +101,13 @@ function round(number: number, precision: number) {
   return Math.round(number)
 }
 
-export const tryCancelEvent = (event: React.MouseEvent | React.TouchEvent) => {
+export const tryCancelEvent = (event: React.MouseEvent | React.TouchEvent, passive?: boolean) => {
   if (event.cancelable === false) {
     return false
   }
+  if (!passive)
+    event.preventDefault()
 
-  event.preventDefault()
   return true
 }
 

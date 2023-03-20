@@ -1,6 +1,6 @@
 {
   "name": "@secretwpn/react-image-zoom",
-  "version": "0.4.1",
+  "version": "0.4.8",
   "private": false,
   "description": "Enables zooming and panning an image, both mobile and desktop.",
   "author": "Brad Stiff",
