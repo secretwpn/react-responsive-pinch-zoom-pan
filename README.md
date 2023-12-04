@@ -44,6 +44,7 @@ const App = () => {
 | initialScale             | `number` or `auto`                           | `auto`      | The initial scale of the image. When `auto`, the image will be proportionally 'autofit' to the container.      |
 | minScale                 | `number`                                     | `auto`      | The minimum scale to which the image can be zoomed out. When `auto`, the minimum scale is the 'autofit' scale. |
 | maxScale                 | `number`                                     | `1`         | The maximum scale to which the image can be zoomed in.                                                         |
+| zoomRevision             | `number`                                     | `undefined` | Zoom level will be reset when this prop is changed                                                             |
 | position                 | `center` or `topLeft`                        | `topLeft`   | Position of the image relative to the container. Applies when the scaled image is smaller than the container.  |
 | doubleTapBehavior        | `reset` or `zoom`                            | `reset`     | Whether to zoom in or reset to initial scale on double-click / double-tap.                                     |
 | imageStyle               | `CSSProperties`                              | `{}`        | Style to apply to the image, e.g. `{ opacity: 0.5 }`                                                           |

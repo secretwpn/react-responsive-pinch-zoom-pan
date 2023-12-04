@@ -78,12 +78,18 @@ interface PinchZoomPanImageProps {
   onImageDimensionsChanged?: (dimensions: Dimensions) => void
   onDoubleClick?: () => void
   onImageLoaded?: () => void
+
+  /**
+   * Zoom will be reset when this is changed
+   */
+  zoomRevision?: number
 }
 
 export function PinchZoomPanImage(props: PinchZoomPanImageProps): JSX.Element {
   const {
     doubleTapBehavior = 'reset',
     initialLeft,
+    zoomRevision = 0,
     initialScale = 'auto',
     initialTop,
     maxScale = 1,
@@ -545,6 +551,10 @@ export function PinchZoomPanImage(props: PinchZoomPanImageProps): JSX.Element {
       window.removeEventListener('resize', handleWindowResize)
     }
   }, [])
+
+  useEffect(() => {    
+    applyInitialTransform()
+  }, [zoomRevision])
 
   const calculateNegativeSpace = (scale: number) => {
     if (!isInitialized) return
